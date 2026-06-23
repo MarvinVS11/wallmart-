@@ -110,33 +110,15 @@
   .fab:active{transform:scale(.94)}
   .fab svg{width:24px;height:24px}
 
-  /* ---------- Botón pagar ---------- */
-  .btn-pagar{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;
-    background:var(--ok);color:#fff;border-radius:13px;padding:13px 16px;margin-bottom:10px;
-    font-weight:700;font-size:.95rem;transition:background .15s,transform .1s}
-  .btn-pagar:hover{background:#138a3e}
-  .btn-pagar:active{transform:scale(.99)}
-  .btn-pagar .bp-left{display:flex;align-items:center;gap:9px}
-  .btn-pagar .bp-total{font-family:'Poppins'}
-  .btn-pagar svg{width:20px;height:20px}
-
-  /* ---------- Checkout ---------- */
-  .modal-pago{max-height:86vh;display:flex;flex-direction:column}
-  .pago-lista{overflow-y:auto;flex:1;margin:2px -2px 0;padding:0 2px}
-  .pago-row{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--linea)}
-  .pago-row:last-child{border-bottom:none}
-  .pago-info{flex:1;min-width:0}
-  .pago-nom{font-weight:600;font-size:.93rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .pago-cant{font-size:.76rem;color:var(--gris);margin-top:2px}
-  .pago-precio{display:flex;align-items:center;gap:5px;color:var(--gris);font-size:.95rem;flex:none}
-  .pago-input{width:96px;padding:9px 10px;border:1px solid var(--linea);border-radius:10px;
-    font-size:.95rem;outline:none;text-align:right}
-  .pago-input:focus{border-color:var(--azul)}
-  .pago-total-row{display:flex;justify-content:space-between;align-items:center;
-    margin:14px 0 6px;padding-top:14px;border-top:2px solid var(--linea)}
-  .pago-total-row .lbl{font-weight:600;color:var(--gris)}
-  .pago-total-row .val{font-family:'Poppins';font-weight:800;font-size:1.45rem;color:var(--ok)}
-  .pago-vacio{text-align:center;color:var(--gris);padding:26px 6px;font-size:.9rem;line-height:1.5}
+  /* ---------- Total editable ---------- */
+  .pill.total .total-edit{display:flex;align-items:center;gap:1px;margin-top:2px}
+  .pill.total .cur{font-family:'Poppins';font-weight:700;font-size:1.18rem;line-height:1}
+  .pill.total input{background:transparent;border:none;outline:none;
+    font-family:'Poppins';font-weight:700;font-size:1.18rem;line-height:1;color:#3d2b00;
+    width:100%;min-width:0;padding:0;-moz-appearance:textfield}
+  .pill.total input::placeholder{color:rgba(61,43,0,.4)}
+  .pill.total input::-webkit-outer-spin-button,
+  .pill.total input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 
   /* ---------- Modal ---------- */
   .overlay{position:fixed;inset:0;background:rgba(16,24,40,.5);z-index:60;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(2px)}
@@ -181,7 +163,7 @@
   <div class="resumen">
     <div class="pill"><div class="lbl">Por comprar</div><div class="val" id="rPend">0</div></div>
     <div class="pill"><div class="lbl">En el carrito</div><div class="val" id="rListos">0</div></div>
-    <div class="pill total"><div class="lbl">Total</div><div class="val" id="rTotal">₡0</div></div>
+    <div class="pill total"><div class="lbl">Total pagado</div><div class="val total-edit"><span class="cur">₡</span><input id="inputTotal" type="number" inputmode="decimal" min="0" step="1" placeholder="0" /></div></div>
   </div>
 </header>
 
@@ -202,13 +184,6 @@
 
 <!-- Barra agregar rápido -->
 <div class="agregar">
-  <button class="btn-pagar" id="btnPagar" style="display:none">
-    <span class="bp-left">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
-      <span id="bpTexto">Pagar</span>
-    </span>
-    <span class="bp-total" id="bpTotal">₡0</span>
-  </button>
   <div class="agregar-inner">
     <input id="agregarRapido" class="nom" type="text" placeholder="Agregar producto y Enter..." />
     <button class="fab" id="btnAbrirModal" title="Más detalles">
@@ -258,17 +233,6 @@
 </div>
 
 <!-- Modal pagar / checkout -->
-<div class="overlay" id="overlayPago">
-  <div class="modal modal-pago">
-    <h2>Pagar la compra</h2>
-    <div class="pago-lista" id="listaPago"></div>
-    <div class="pago-total-row"><span class="lbl">Total a pagar</span><span class="val" id="pagoTotal">₡0</span></div>
-    <div class="modal-btns">
-      <button class="btn btn-sec" id="btnCerrarPago">Cerrar</button>
-      <button class="btn btn-prim" id="btnGuardarPago">Guardar precios</button>
-    </div>
-  </div>
-</div>
 
 <div class="toast" id="toast"></div>
 
@@ -324,19 +288,8 @@ function renderAll() {
 function renderResumen() {
   const pend = productos.filter(p => !p.comprado);
   const listos = productos.filter(p => p.comprado);
-  const totalCarrito = listos.reduce((s, p) => s + (Number(p.precio) || 0) * (Number(p.cantidad) || 0), 0);
   $("rPend").textContent = pend.length;
   $("rListos").textContent = listos.length;
-  $("rTotal").textContent = fmt(totalCarrito);
-
-  const btn = $("btnPagar");
-  if (listos.length > 0) {
-    btn.style.display = "flex";
-    $("bpTexto").textContent = `Pagar · ${listos.length} ${listos.length === 1 ? "artículo" : "artículos"}`;
-    $("bpTotal").textContent = fmt(totalCarrito);
-  } else {
-    btn.style.display = "none";
-  }
 }
 
 function renderFiltros() {
@@ -388,7 +341,6 @@ function renderLista() {
 }
 
 function itemHTML(p) {
-  const sub = (Number(p.precio) || 0) * (Number(p.cantidad) || 0);
   return `
     <div class="item ${p.comprado ? "listo" : ""}">
       <button class="check" onclick="toggleComprado('${p.id}')" title="Marcar">
@@ -399,7 +351,6 @@ function itemHTML(p) {
         <div class="meta">
           <span class="cat-tag">${esc(p.categoria)}</span>
           <span>${fmtCant(p.cantidad)} ${esc(p.unidad)}</span>
-          ${sub > 0 ? `<span>· ${fmt(sub)}</span>` : ""}
         </div>
       </div>
       <div class="acciones">
@@ -555,82 +506,33 @@ function guardarModal() {
 }
 
 /* ============================================================
-   6b) PAGAR / CHECKOUT
+   6b) TOTAL PAGADO  (editable, lo escribe el usuario en caja)
    ============================================================ */
-let preciosTmp = {};  // id -> precio unitario mientras se está pagando
-
-function abrirPago() {
-  const carrito = productos.filter(p => p.comprado);
-  preciosTmp = {};
-  const cont = $("listaPago");
-
-  if (carrito.length === 0) {
-    cont.innerHTML = `<div class="pago-vacio">Todavía no hay nada en el carrito.<br>Tocá el círculo de cada producto que metés para marcarlo, y volvé a Pagar.</div>`;
-    $("btnGuardarPago").style.display = "none";
-  } else {
-    $("btnGuardarPago").style.display = "";
-    cont.innerHTML = carrito.map(p => {
-      preciosTmp[p.id] = Number(p.precio) || 0;
-      const val = (Number(p.precio) || 0) > 0 ? p.precio : "";
-      return `
-        <div class="pago-row">
-          <div class="pago-info">
-            <div class="pago-nom">${esc(p.nombre)}</div>
-            <div class="pago-cant">${fmtCant(p.cantidad)} ${esc(p.unidad)} · ${esc(p.categoria)}</div>
-          </div>
-          <div class="pago-precio">₡
-            <input class="pago-input" type="number" inputmode="decimal" min="0" step="1"
-              value="${val}" placeholder="0"
-              oninput="onPrecioInput('${p.id}', this.value)" />
-          </div>
-        </div>`;
-    }).join("");
-  }
-  calcPagoTotal();
-  $("overlayPago").classList.add("abierto");
-}
-
-function onPrecioInput(id, val) {
-  preciosTmp[id] = Number(val) || 0;
-  calcPagoTotal();
-}
-
-function calcPagoTotal() {
-  let t = 0;
-  for (const p of productos.filter(x => x.comprado)) {
-    const precio = preciosTmp[p.id] != null ? preciosTmp[p.id] : (Number(p.precio) || 0);
-    t += precio * (Number(p.cantidad) || 0);
-  }
-  $("pagoTotal").textContent = fmt(t);
-}
-
-function cerrarPago() { $("overlayPago").classList.remove("abierto"); }
-
-async function guardarPago() {
-  const carrito = productos.filter(p => p.comprado);
-  const cambios = carrito.filter(p => (preciosTmp[p.id] || 0) !== (Number(p.precio) || 0));
-
-  // optimista
-  cambios.forEach(p => {
-    const i = productos.findIndex(x => x.id === p.id);
-    if (i !== -1) productos[i].precio = preciosTmp[p.id];
-  });
-  renderAll();
-  cerrarPago();
-
-  if (cambios.length === 0) { toast("Sin cambios"); return; }
-  if (!configOk) { toast("Precios guardados"); return; }
-
+async function cargarTotal() {
+  if (!configOk) return;
   try {
-    await Promise.all(cambios.map(p =>
-      sb.from("productos").update({ precio: preciosTmp[p.id] }).eq("id", p.id)
-        .then(({ error }) => { if (error) throw error; })
-    ));
-    toast("Precios guardados");
+    const { data, error } = await sb
+      .from("config").select("valor").eq("clave", "total_pagado").maybeSingle();
+    if (error) throw error;
+    const v = data ? Number(data.valor) || 0 : 0;
+    $("inputTotal").value = v > 0 ? v : "";
   } catch (e) {
-    console.error(e);
-    toast("Algunos precios no se guardaron", true);
-    cargar();  // re-sincronizo con la base
+    console.error("cargarTotal", e);
+  }
+}
+
+async function guardarTotal() {
+  const v = Number($("inputTotal").value) || 0;
+  if (!configOk) return;
+  try {
+    const { error } = await sb
+      .from("config")
+      .upsert({ clave: "total_pagado", valor: String(v) }, { onConflict: "clave" });
+    if (error) throw error;
+    toast("Total guardado");
+  } catch (e) {
+    console.error("guardarTotal", e);
+    toast("No se pudo guardar el total", true);
   }
 }
 
@@ -658,21 +560,20 @@ $("overlay").onclick = (e) => { if (e.target.id === "overlay") cerrarModal(); };
 $("busqueda").oninput = renderLista;
 $("filtroCat").onchange = renderLista;
 
-$("btnPagar").onclick = abrirPago;
-$("btnCerrarPago").onclick = cerrarPago;
-$("btnGuardarPago").onclick = guardarPago;
-$("overlayPago").onclick = (e) => { if (e.target.id === "overlayPago") cerrarPago(); };
+// Guarda el total al salir del campo o al dar Enter
+$("inputTotal").addEventListener("change", guardarTotal);
+$("inputTotal").addEventListener("keydown", (e) => { if (e.key === "Enter") $("inputTotal").blur(); });
 
 $("agregarRapido").addEventListener("keydown", (e) => {
   if (e.key === "Enter") {
     const nombre = e.target.value.trim();
     if (!nombre) return;
-    crear({ nombre, cantidad: 1, unidad: "und", categoria: "General", precio: 0 });
+    crear({ nombre, cantidad: 1, unidad: "und", categoria: "General" });
     e.target.value = "";
   }
 });
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") { cerrarModal(); cerrarPago(); }
+  if (e.key === "Escape") cerrarModal();
   if (e.key === "Enter" && $("overlay").classList.contains("abierto")) guardarModal();
 });
 
@@ -680,6 +581,7 @@ document.addEventListener("keydown", (e) => {
    9) ARRANQUE
    ============================================================ */
 cargar();
+cargarTotal();
 </script>
 </body>
 </html>
