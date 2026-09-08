@@ -175,12 +175,7 @@
   @keyframes mcPop{0%{transform:scale(0);opacity:0}60%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}
   @keyframes mcDraw{to{stroke-dashoffset:0}}
   #modalCompletado .mc-titulo{font-family:'Poppins';font-weight:800;font-size:1.45rem;color:var(--tinta);margin:0 0 6px}
-  #modalCompletado .mc-texto{color:var(--gris);font-size:.96rem;line-height:1.5;margin:0 0 20px}
-  #modalCompletado .mc-btn{width:100%;background:var(--azul);color:#fff;border:none;border-radius:13px;
-    padding:13px;font-family:'Inter',sans-serif;font-weight:700;font-size:1rem;
-    transition:background .15s,transform .1s}
-  #modalCompletado .mc-btn:hover{background:var(--azul-osc)}
-  #modalCompletado .mc-btn:active{transform:scale(.97)}
+  #modalCompletado .mc-texto{color:var(--gris);font-size:.96rem;line-height:1.5;margin:0}
   /* entrada del diálogo con un pequeño rebote */
   #modalCompletado.fade .modal-dialog{transform:scale(.9) translateY(10px);transition:transform .3s cubic-bezier(.18,.89,.32,1.28)}
   #modalCompletado.show .modal-dialog{transform:scale(1) translateY(0)}
@@ -275,7 +270,6 @@
         </div>
         <h2 class="mc-titulo">¡Lista completa!</h2>
         <p class="mc-texto">Todos los productos ya están en el carrito. 🛒<br>Ya podés pasar por caja.</p>
-        <button type="button" class="mc-btn" data-bs-dismiss="modal">Listo</button>
       </div>
     </div>
   </div>
@@ -302,6 +296,7 @@ let productos = [];     // arreglo en memoria (optimistic UI)
 let editandoId = null;  // id del producto en edición, o null si es nuevo
 let yaCompletado = false;   // evita mostrar el modal repetido mientras siga todo comprado
 let modalCompletadoBS = null;  // instancia del modal de Bootstrap
+let cierreModalT = null;       // temporizador de cierre automático
 
 const $ = (id) => document.getElementById(id);
 const fmt = (n) => "₡" + Math.round(Number(n) || 0).toLocaleString("es-CR");
@@ -527,6 +522,8 @@ function mostrarModalCompletado() {
   if (!el || typeof bootstrap === "undefined") return;
   if (!modalCompletadoBS) modalCompletadoBS = new bootstrap.Modal(el);
   modalCompletadoBS.show();
+  clearTimeout(cierreModalT);
+  cierreModalT = setTimeout(() => modalCompletadoBS.hide(), 3000);  // se cierra solo a los 3s
 }
 
 /* ============================================================
