@@ -167,31 +167,50 @@
     box-shadow:0 24px 60px rgba(16,24,40,.28)}
   #modalCompletado .modal-body{padding:30px 26px 26px}
 
-  /* escenario de la bolsa que se llena */
+  /* escenario del recibo que se imprime */
   .mc-stage{position:relative;height:120px;margin:2px auto 14px;display:grid;place-items:center}
 
-  .mc-bagwrap{position:relative;width:92px;height:92px}
-  .mc-bagwrap svg{width:100%;height:100%}
-  .mc-anim .mc-bagwrap{animation:mcNod .5s .82s ease both}
+  .mc-recwrap{display:flex;flex-direction:column;align-items:center}
 
-  .bag-outline{fill:none;stroke:var(--azul);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
-  .bag-strap{fill:none;stroke:var(--azul);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
-  .mc-fill{y:25;height:27}
-  .mc-anim .mc-fill{animation:mcFill .85s .05s cubic-bezier(.4,0,.2,1) both}
+  /* ranura de la impresora */
+  .mc-slot{width:98px;height:9px;border-radius:5px;
+    background:linear-gradient(180deg,#1e293b,#0e141d);
+    box-shadow:inset 0 2px 3px rgba(0,0,0,.55);margin-bottom:-3px;position:relative;z-index:3}
 
-  /* sello verde que aparece cuando termina de llenarse */
-  .mc-badge2{position:absolute;right:2px;top:0;width:32px;height:32px;border-radius:50%;
-    background:linear-gradient(135deg,#34d17a,#16a34a);display:grid;place-items:center;
-    box-shadow:0 6px 16px rgba(22,163,74,.5);transform:scale(0);z-index:3}
-  .mc-badge2 svg{width:18px;height:18px;color:#fff}
-  .mc-anim .mc-badge2{animation:mcBadge2 .5s .78s cubic-bezier(.18,.89,.32,1.28) both}
+  /* papel del recibo, revelado progresivamente (como al imprimirse) */
+  .mc-receipt{position:relative;width:84px;height:80px;padding:13px 12px 12px;
+    background:#fff;border-radius:2px 2px 7px 7px;
+    box-shadow:0 10px 22px rgba(16,24,40,.18);
+    clip-path:inset(0 0 100% 0);z-index:2}
+  .mc-anim .mc-receipt{animation:mcPrint .8s .05s cubic-bezier(.32,.7,.28,1) both}
 
-  @keyframes mcFill{from{y:25}to{y:-3}}
-  @keyframes mcNod{0%{transform:scale(1) rotate(0)}
-    35%{transform:scale(1.07) rotate(-4deg)}65%{transform:scale(1.07) rotate(3deg)}
-    100%{transform:scale(1) rotate(0)}}
-  @keyframes mcBadge2{0%{transform:scale(0) rotate(-25deg)}
-    60%{transform:scale(1.25) rotate(6deg)}100%{transform:scale(1) rotate(0)}}
+  .mc-rline{height:5px;border-radius:3px;background:#dfe4ee;margin:7px 0;
+    transform:scaleX(0);transform-origin:left}
+  .mc-rline.w1{width:80%}
+  .mc-rline.w2{width:58%}
+  .mc-rline.w3{width:68%}
+  .mc-anim .mc-rline.w1{animation:mcLine .25s .64s ease both}
+  .mc-anim .mc-rline.w2{animation:mcLine .25s .74s ease both}
+  .mc-anim .mc-rline.w3{animation:mcLine .25s .84s ease both}
+
+  /* sello verde tipo tampón, en la esquina del recibo */
+  .mc-stamp3{position:absolute;right:-9px;bottom:-9px;width:38px;height:38px;border-radius:50%;
+    background:linear-gradient(135deg,#34d17a,#16a34a);display:grid;place-items:center;color:#fff;
+    box-shadow:0 6px 16px rgba(22,163,74,.5);transform:scale(0) rotate(-20deg);opacity:0;z-index:4}
+  .mc-stamp3 svg{width:20px;height:20px}
+  .mc-anim .mc-stamp3{animation:mcStamp3 .48s .98s cubic-bezier(.3,.65,.3,1) both}
+
+  @keyframes mcPrint{
+    0%{clip-path:inset(0 0 100% 0);transform:translateY(-4px)}
+    72%{clip-path:inset(0 0 0% 0);transform:translateY(2px)}
+    88%{transform:translateY(-1px)}
+    100%{clip-path:inset(0 0 0% 0);transform:translateY(0)}}
+  @keyframes mcLine{to{transform:scaleX(1)}}
+  @keyframes mcStamp3{
+    0%{transform:scale(1.7) rotate(-20deg);opacity:0}
+    62%{transform:scale(.94) rotate(-8deg);opacity:1}
+    82%{transform:scale(1.08) rotate(-9deg)}
+    100%{transform:scale(1) rotate(-8deg);opacity:1}}
 
   #modalCompletado .mc-titulo{font-family:'Poppins';font-weight:800;font-size:1.45rem;color:var(--tinta);margin:0 0 6px}
   #modalCompletado .mc-texto{color:var(--gris);font-size:.96rem;line-height:1.5;margin:0}
@@ -285,27 +304,16 @@
     <div class="modal-content text-center">
       <div class="modal-body">
         <div class="mc-stage">
-          <div class="mc-bagwrap">
-            <svg viewBox="0 0 24 24">
-              <defs>
-                <clipPath id="mcBagClip">
-                  <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/>
-                </clipPath>
-                <linearGradient id="mcBagGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stop-color="#34d17a"/>
-                  <stop offset="100%" stop-color="#16a34a"/>
-                </linearGradient>
-              </defs>
-              <g clip-path="url(#mcBagClip)">
-                <rect class="mc-fill" x="0" width="24" fill="url(#mcBagGrad)"/>
-              </g>
-              <path class="bag-outline" d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/>
-              <path class="bag-strap" d="M3 6h18"/>
-              <path class="bag-strap" d="M16 10a4 4 0 0 1-8 0"/>
-            </svg>
-            <span class="mc-badge2">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
-            </span>
+          <div class="mc-recwrap">
+            <div class="mc-slot"></div>
+            <div class="mc-receipt">
+              <div class="mc-rline w1"></div>
+              <div class="mc-rline w2"></div>
+              <div class="mc-rline w3"></div>
+              <span class="mc-stamp3">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+              </span>
+            </div>
           </div>
         </div>
         <h2 class="mc-titulo">¡Lista completa!</h2>
