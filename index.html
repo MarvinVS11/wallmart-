@@ -167,26 +167,30 @@
     box-shadow:0 24px 60px rgba(16,24,40,.28)}
   #modalCompletado .modal-body{padding:30px 26px 26px}
 
-  /* escenario del anillo de progreso */
+  /* escenario del estallido de destellos */
   .mc-stage{position:relative;height:120px;margin:2px auto 14px;display:grid;place-items:center}
 
-  /* anillo que se traza alrededor */
-  .mc-prog{width:106px;height:106px;transform:rotate(-90deg)}
-  .mc-prog .track{fill:none;stroke:#e6eaf2;stroke-width:7}
-  .mc-prog .bar{fill:none;stroke:var(--azul);stroke-width:7;stroke-linecap:round;
-    stroke-dasharray:283;stroke-dashoffset:0}
-  .mc-anim .mc-prog .bar{animation:mcProg .75s cubic-bezier(.65,0,.35,1) both}
+  /* destellos amarillos (estilo logo Walmart) */
+  .mc-rays{position:absolute;width:0;height:0;left:50%;top:50%;z-index:1}
+  .mc-rays span{position:absolute;left:0;top:0;width:9px;height:26px;border-radius:5px;
+    background:var(--spark);opacity:0;
+    transform:translate(-50%,-50%) rotate(var(--a)) translateY(-40px) scale(0)}
+  .mc-anim .mc-rays{animation:mcSpin .6s ease both}
+  .mc-anim .mc-rays span{animation:mcRay .5s var(--d,0s) cubic-bezier(.18,.89,.32,1.28) both}
 
-  /* check verde que salta al centro */
-  .mc-tick{position:absolute;width:58px;height:58px;border-radius:50%;
+  /* núcleo verde con el check */
+  .mc-core{position:relative;width:62px;height:62px;border-radius:50%;z-index:2;
     background:linear-gradient(135deg,#34d17a,#16a34a);display:grid;place-items:center;
-    box-shadow:0 8px 20px rgba(22,163,74,.45);transform:scale(1)}
-  .mc-tick svg{width:31px;height:31px;color:#fff}
-  .mc-anim .mc-tick{animation:mcTick .5s .6s cubic-bezier(.18,.89,.32,1.28) both}
+    box-shadow:0 8px 22px rgba(22,163,74,.45);transform:scale(1)}
+  .mc-core svg{width:32px;height:32px;color:#fff}
+  .mc-anim .mc-core{animation:mcCore .5s .16s cubic-bezier(.18,.89,.32,1.28) both}
 
-  @keyframes mcProg{from{stroke-dashoffset:283}to{stroke-dashoffset:0}}
-  @keyframes mcTick{0%{transform:scale(0) rotate(-30deg)}
-    60%{transform:scale(1.22) rotate(5deg)}100%{transform:scale(1) rotate(0)}}
+  @keyframes mcRay{
+    0%{opacity:0;transform:translate(-50%,-50%) rotate(var(--a)) translateY(-14px) scale(.2)}
+    100%{opacity:1;transform:translate(-50%,-50%) rotate(var(--a)) translateY(-40px) scale(1)}}
+  @keyframes mcSpin{from{transform:rotate(-28deg)}to{transform:rotate(0)}}
+  @keyframes mcCore{0%{transform:scale(0) rotate(-40deg)}
+    60%{transform:scale(1.2) rotate(6deg)}100%{transform:scale(1) rotate(0)}}
 
   #modalCompletado .mc-titulo{font-family:'Poppins';font-weight:800;font-size:1.45rem;color:var(--tinta);margin:0 0 6px}
   #modalCompletado .mc-texto{color:var(--gris);font-size:.96rem;line-height:1.5;margin:0}
@@ -280,11 +284,15 @@
     <div class="modal-content text-center">
       <div class="modal-body">
         <div class="mc-stage">
-          <svg class="mc-prog" viewBox="0 0 100 100">
-            <circle class="track" cx="50" cy="50" r="45"/>
-            <circle class="bar" cx="50" cy="50" r="45"/>
-          </svg>
-          <div class="mc-tick">
+          <div class="mc-rays">
+            <span style="--a:0deg;--d:.16s"></span>
+            <span style="--a:60deg;--d:.20s"></span>
+            <span style="--a:120deg;--d:.24s"></span>
+            <span style="--a:180deg;--d:.28s"></span>
+            <span style="--a:240deg;--d:.32s"></span>
+            <span style="--a:300deg;--d:.36s"></span>
+          </div>
+          <div class="mc-core">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
           </div>
         </div>
