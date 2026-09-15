@@ -11,6 +11,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" defer></script>
 <style>
   :root{
     --azul:#0071dc;
@@ -62,6 +63,10 @@
     background:var(--card);font-size:.92rem;outline:none;transition:border-color .15s}
   .buscar input:focus{border-color:var(--azul)}
   .filtro{border:1px solid var(--linea);border-radius:12px;background:var(--card);padding:0 10px;font-size:.88rem;color:var(--tinta);outline:none}
+  .tbtn{flex:none;width:44px;border:1px solid var(--linea);border-radius:12px;background:var(--card);
+    display:grid;place-items:center;color:var(--azul);transition:background .15s}
+  .tbtn:hover{background:#f3f5fa}
+  .tbtn svg{width:19px;height:19px}
 
   /* ---------- Lista ---------- */
   .grupo-titulo{display:flex;align-items:center;gap:8px;font-size:.74rem;font-weight:600;
@@ -204,6 +209,28 @@
   /* entrada del diálogo con un pequeño rebote */
   #modalCompletado.fade .modal-dialog{transform:scale(.9) translateY(10px);transition:transform .3s cubic-bezier(.18,.89,.32,1.28)}
   #modalCompletado.show .modal-dialog{transform:scale(1) translateY(0)}
+
+  /* ---------- Tarjeta para compartir como imagen (fuera de pantalla) ---------- */
+  .compartir-card{position:fixed;left:-9999px;top:0;width:420px;background:#fff;
+    padding:26px 24px 22px;font-family:'Inter',system-ui,sans-serif;color:#101828}
+  .cc-head{display:flex;align-items:center;gap:11px}
+  .cc-logo{width:34px;height:34px;object-fit:contain;background:var(--azul);border-radius:9px;padding:4px}
+  .cc-marca{font-family:'Poppins';font-weight:800;font-size:1.12rem;line-height:1.2}
+  .cc-sub{color:var(--gris);font-size:.8rem;margin-top:1px}
+  .cc-hr{border:none;border-top:1px solid var(--linea);margin:16px 0 4px}
+  .cc-sect{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
+    color:var(--gris);margin:14px 0 6px}
+  .cc-sect.verde{color:#16a34a}
+  .cc-row{display:flex;justify-content:space-between;align-items:baseline;
+    padding:7px 0;border-bottom:1px solid #f0f2f7}
+  .cc-row .nom{font-weight:600;font-size:.94rem}
+  .cc-row.listo .nom{color:#16a34a}
+  .cc-row .meta{color:var(--gris);font-size:.78rem;white-space:nowrap;margin-left:10px}
+  .cc-total{display:flex;justify-content:space-between;align-items:center;
+    margin-top:16px;padding-top:14px;border-top:2px solid var(--linea)}
+  .cc-total .lbl{font-weight:600;color:var(--gris);font-size:.9rem}
+  .cc-total .val{font-family:'Poppins';font-weight:800;font-size:1.3rem;color:#16a34a}
+  .cc-foot{margin-top:18px;text-align:center;font-size:.7rem;color:var(--gris)}
 </style>
 </head>
 <body>
@@ -231,6 +258,9 @@
       <input id="busqueda" type="text" placeholder="Buscar producto..." />
     </div>
     <select id="filtroCat" class="filtro"><option value="">Todas</option></select>
+    <button class="tbtn" id="btnCompartir" title="Compartir lista">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+    </button>
   </div>
   <div id="lista"></div>
 </main>
@@ -644,6 +674,75 @@ async function guardarTotal() {
 }
 
 
+/* ============================================================
+   7b) COMPARTIR LISTA COMO IMAGEN
+   ============================================================ */
+async function compartirLista() {
+  if (productos.length === 0) { toast("Agregá productos primero", true); return; }
+  if (typeof html2canvas === "undefined") { toast("No se pudo generar la imagen", true); return; }
+
+  const pend = productos.filter(p => !p.comprado);
+  const listos = productos.filter(p => p.comprado);
+  const totalPagado = Number($("inputTotal")?.value) || 0;
+  const logoSrc = document.querySelector("img.spark")?.src || "";
+  const fecha = new Date().toLocaleDateString("es-CR", { day: "numeric", month: "long", year: "numeric" });
+
+  const filaHTML = (p, listo) => `
+    <div class="cc-row${listo ? " listo" : ""}">
+      <div class="nom">${listo ? "✓ " : ""}${esc(p.nombre)}</div>
+      <div class="meta">${fmtCant(p.cantidad)} ${esc(p.unidad)} · ${esc(p.categoria)}</div>
+    </div>`;
+
+  const card = document.createElement("div");
+  card.className = "compartir-card";
+  card.innerHTML = `
+    <div class="cc-head">
+      ${logoSrc ? `<img class="cc-logo" src="${logoSrc}">` : ""}
+      <div>
+        <div class="cc-marca">Lista de compras</div>
+        <div class="cc-sub">Walmart · ${fecha}</div>
+      </div>
+    </div>
+    <hr class="cc-hr">
+    ${pend.length ? `<div class="cc-sect">Por comprar (${pend.length})</div>${pend.map(p => filaHTML(p, false)).join("")}` : ""}
+    ${listos.length ? `<div class="cc-sect verde">En el carrito (${listos.length})</div>${listos.map(p => filaHTML(p, true)).join("")}` : ""}
+    ${totalPagado > 0 ? `<div class="cc-total"><span class="lbl">Total pagado</span><span class="val">${fmt(totalPagado)}</span></div>` : ""}
+    <div class="cc-foot">Generado desde la app de lista de compras</div>
+  `;
+  document.body.appendChild(card);
+
+  try {
+    const canvas = await html2canvas(card, { scale: 2, backgroundColor: "#ffffff" });
+    card.remove();
+
+    canvas.toBlob(async (blob) => {
+      if (!blob) { toast("No se pudo generar la imagen", true); return; }
+      const file = new File([blob], "lista-compras.png", { type: "image/png" });
+
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], title: "Lista de compras" });
+          return;
+        } catch (e) {
+          if (e.name === "AbortError") return;  // el usuario canceló, no es error
+          console.error(e);
+        }
+      }
+      // Fallback: descargar la imagen
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = "lista-compras.png";
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+      toast("Imagen descargada");
+    }, "image/png");
+  } catch (e) {
+    console.error(e);
+    card.remove();
+    toast("No se pudo generar la imagen", true);
+  }
+}
+
 function esc(s) {
   return String(s).replace(/[&<>"']/g, c =>
     ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[c]));
@@ -666,6 +765,7 @@ $("btnGuardar").onclick = guardarModal;
 $("overlay").onclick = (e) => { if (e.target.id === "overlay") cerrarModal(); };
 $("busqueda").oninput = renderLista;
 $("filtroCat").onchange = renderLista;
+$("btnCompartir").onclick = compartirLista;
 
 // Guarda el total al salir del campo o al dar Enter
 $("inputTotal").addEventListener("change", guardarTotal);
