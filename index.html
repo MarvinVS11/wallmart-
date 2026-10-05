@@ -231,6 +231,27 @@
   .cc-total .lbl{font-weight:600;color:var(--gris);font-size:.9rem}
   .cc-total .val{font-family:'Poppins';font-weight:800;font-size:1.3rem;color:#16a34a}
   .cc-foot{margin-top:18px;text-align:center;font-size:.7rem;color:var(--gris)}
+
+  /* ---------- Modal historial ---------- */
+  #modalHistorial .modal-content{border:none;border-radius:20px}
+  #modalHistorial .modal-title{font-family:'Poppins';font-weight:800;font-size:1.1rem}
+  #modalHistorial .modal-body{padding:16px 18px 22px}
+  .hist-archivar .abtn{width:100%}
+  .hist-vacio-actual{color:var(--gris);font-size:.8rem;margin:8px 2px 0;text-align:center}
+  .hist-vacio{color:var(--gris);font-size:.9rem;text-align:center;padding:26px 6px}
+  .hist-sep{border:none;border-top:1px solid var(--linea);margin:16px 0}
+  .hist-item{border:1px solid var(--linea);border-radius:13px;margin-bottom:10px;overflow:hidden}
+  .hist-head{width:100%;display:flex;justify-content:space-between;align-items:center;
+    padding:13px 14px;background:var(--card);text-align:left}
+  .hist-fecha{font-weight:600;font-size:.92rem;text-transform:capitalize}
+  .hist-meta{font-size:.78rem;color:var(--gris);margin-top:1px}
+  .hist-total{font-family:'Poppins';font-weight:800;color:#16a34a;white-space:nowrap}
+  .hist-lista{padding:2px 14px 12px;border-top:1px solid var(--linea)}
+  .hist-row{display:flex;justify-content:space-between;align-items:baseline;
+    padding:7px 0;font-size:.88rem;border-bottom:1px solid #f0f2f7}
+  .hist-row:last-child{border-bottom:none}
+  .hist-row.listo span:first-child{color:#16a34a}
+  .hist-rowmeta{color:var(--gris);font-size:.78rem;white-space:nowrap;margin-left:10px}
 </style>
 </head>
 <body>
@@ -260,6 +281,9 @@
     <select id="filtroCat" class="filtro"><option value="">Todas</option></select>
     <button class="tbtn" id="btnCompartir" title="Compartir lista">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+    </button>
+    <button class="tbtn" id="btnHistorial" title="Historial de compras">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
     </button>
   </div>
   <div id="lista"></div>
@@ -332,6 +356,19 @@
   </div>
 </div>
 
+<!-- Modal de historial de compras -->
+<div class="modal fade" id="modalHistorial" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Historial de compras</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body" id="histBody"></div>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -354,6 +391,8 @@ let editandoId = null;  // id del producto en edición, o null si es nuevo
 let yaCompletado = false;   // evita mostrar el modal repetido mientras siga todo comprado
 let modalCompletadoBS = null;  // instancia del modal de Bootstrap
 let cierreModalT = null;       // temporizador de cierre automático
+let modalHistorialBS = null;   // instancia del modal de historial
+let historialCache = [];       // última lista de compras archivadas cargada
 
 const $ = (id) => document.getElementById(id);
 const fmt = (n) => "₡" + Math.round(Number(n) || 0).toLocaleString("es-CR");
@@ -673,6 +712,111 @@ async function guardarTotal() {
   }
 }
 
+/* ============================================================
+   6c) HISTORIAL DE COMPRAS (se archiva, nunca se borra solo)
+   ============================================================ */
+function abrirHistorial() {
+  const el = document.getElementById("modalHistorial");
+  if (!el || typeof bootstrap === "undefined") return;
+  if (!modalHistorialBS) modalHistorialBS = new bootstrap.Modal(el);
+  modalHistorialBS.show();
+  cargarHistorial();
+}
+
+async function cargarHistorial() {
+  if (!configOk) { renderHistorial([]); return; }
+  try {
+    const { data, error } = await sb
+      .from("historial").select("*").order("fecha", { ascending: false }).limit(30);
+    if (error) throw error;
+    historialCache = data || [];
+    renderHistorial(historialCache);
+  } catch (e) {
+    console.error("cargarHistorial", e);
+    toast("No se pudo cargar el historial", true);
+    renderHistorial([]);
+  }
+}
+
+function renderHistorial(lista) {
+  const body = $("histBody");
+  const hayActual = productos.length > 0;
+
+  let html = `
+    <div class="hist-archivar">
+      <button class="abtn abtn-prim" id="btnArchivar" ${hayActual ? "" : "disabled"}>
+        Guardar esta compra y empezar una lista nueva
+      </button>
+      ${!hayActual ? '<p class="hist-vacio-actual">No hay productos en la lista actual.</p>' : ""}
+    </div>
+    <hr class="hist-sep">`;
+
+  if (!lista.length) {
+    html += `<p class="hist-vacio">Todavía no tenés compras guardadas en el historial.</p>`;
+  } else {
+    html += lista.map((h, i) => {
+      const fecha = new Date(h.fecha).toLocaleDateString("es-CR",
+        { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+      const items = Array.isArray(h.items) ? h.items : [];
+      return `
+        <div class="hist-item">
+          <button class="hist-head" data-bs-toggle="collapse" data-bs-target="#histCol${i}">
+            <div>
+              <div class="hist-fecha">${esc(fecha)}</div>
+              <div class="hist-meta">${items.length} ${items.length === 1 ? "producto" : "productos"}</div>
+            </div>
+            <div class="hist-total">${fmt(h.total)}</div>
+          </button>
+          <div class="collapse" id="histCol${i}">
+            <div class="hist-lista">
+              ${items.map(it => `
+                <div class="hist-row${it.comprado ? " listo" : ""}">
+                  <span>${it.comprado ? "✓ " : ""}${esc(it.nombre)}</span>
+                  <span class="hist-rowmeta">${fmtCant(it.cantidad)} ${esc(it.unidad)}</span>
+                </div>`).join("")}
+            </div>
+          </div>
+        </div>`;
+    }).join("");
+  }
+
+  body.innerHTML = html;
+  const btn = $("btnArchivar");
+  if (btn) btn.onclick = archivarCompra;
+}
+
+async function archivarCompra() {
+  if (productos.length === 0) return;
+  if (!configOk) { toast("Conectá Supabase primero", true); return; }
+  if (!confirm("¿Guardar esta compra en el historial y vaciar la lista actual?")) return;
+
+  const totalPagado = Number($("inputTotal")?.value) || 0;
+  const snapshot = productos.map(p => ({
+    nombre: p.nombre, cantidad: p.cantidad, unidad: p.unidad,
+    categoria: p.categoria, comprado: p.comprado
+  }));
+  const ids = productos.map(p => p.id);
+
+  try {
+    const { error: e1 } = await sb.from("historial").insert({ total: totalPagado, items: snapshot });
+    if (e1) throw e1;
+
+    const { error: e2 } = await sb.from("productos").delete().in("id", ids);
+    if (e2) throw e2;
+
+    await sb.from("config").upsert({ clave: "total_pagado", valor: "0" }, { onConflict: "clave" });
+
+    productos = [];
+    yaCompletado = false;
+    $("inputTotal").value = "";
+    renderAll();
+    toast("Compra guardada en el historial");
+    cargarHistorial();
+  } catch (e) {
+    console.error("archivarCompra", e);
+    toast("No se pudo guardar el historial", true);
+  }
+}
 
 /* ============================================================
    7b) COMPARTIR LISTA COMO IMAGEN
@@ -766,6 +910,7 @@ $("overlay").onclick = (e) => { if (e.target.id === "overlay") cerrarModal(); };
 $("busqueda").oninput = renderLista;
 $("filtroCat").onchange = renderLista;
 $("btnCompartir").onclick = compartirLista;
+$("btnHistorial").onclick = abrirHistorial;
 
 // Guarda el total al salir del campo o al dar Enter
 $("inputTotal").addEventListener("change", guardarTotal);
